@@ -1,26 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowRight, Car, Clock, Users } from "lucide-react";
+import { ArrowRight, Car, Clock, MapPin, Route, UserRound, Users } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import type { Carona, CaronaIn, Diretoria, RideOffer } from "@/lib/types";
-import { errMsg, fmtDate } from "@/lib/format";
+import { dateParts, errMsg, fmtDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-function SeatMeter({ left, total }: { left: number; total: number }) {
-  return (
-    <div className="flex gap-1" aria-label={`${left} de ${total} vagas livres`}>
-      {Array.from({ length: total }).map((_, i) => (
-        <span key={i} className={`h-2 w-5 rounded-full ${i < total - left ? "bg-slate-300" : "bg-green-500"}`} />
-      ))}
-    </div>
-  );
-}
 
 export function RideBoard() {
   const qc = useQueryClient();
@@ -56,38 +46,47 @@ export function RideBoard() {
       <div className="grid gap-4 lg:grid-cols-2">
         {!offers.isError && (offers.data ?? []).map((o, idx) => {
           const full = o.vagas_disponiveis <= 0;
+          const dt = dateParts(o.data_saida);
           return (
             <article key={o.trip_id} style={{ animationDelay: `${idx * 50}ms` }}
-              className="rise-in group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition-[box-shadow,border-color] duration-200 hover:border-slate-300 hover:shadow-md"
+              className={`rise-in group overflow-hidden rounded-2xl border border-slate-200 border-l-4 bg-white shadow-xs transition-[box-shadow,border-color] duration-200 hover:border-slate-300 hover:shadow-md ${full ? "border-l-slate-300" : "border-l-[#1E3A8A]"}`}
               data-testid={`ride-card-${o.protocolo}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-mono text-xs text-slate-500">{o.protocolo} · {o.diretoria}</p>
-                  <h4 className="mt-1 text-lg font-semibold text-slate-900">
-                    {o.destinos.map((d) => d.municipio).join(" → ")}
-                  </h4>
+              <div className="flex gap-4 p-5">
+                <div className="flex w-16 shrink-0 flex-col items-center justify-center border-r border-slate-200 pr-4 text-center" data-testid={`ride-card-date-${o.protocolo}`}>
+                  <span className="font-heading text-3xl font-semibold leading-none text-[#1E3A8A]">{dt.day}</span>
+                  <span className="mt-1 text-xs font-bold text-slate-800">{dt.month}</span>
+                  <span className="mt-2 text-[10px] leading-tight text-slate-500">{dt.weekday}</span>
                 </div>
-                <div className={`shrink-0 rounded-xl px-3 py-2 text-center ${full ? "bg-slate-100" : "bg-green-50"}`}>
-                  <p className={`font-heading text-2xl font-semibold leading-none ${full ? "text-slate-500" : "text-green-700"}`} data-testid={`ride-card-vagas-${o.protocolo}`}>
-                    {o.vagas_disponiveis}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-slate-500"><span className="font-mono font-semibold tracking-wide">{o.protocolo}</span> · {o.diretoria}</p>
+                  <h4 className="mt-1 truncate text-lg font-semibold text-slate-900">{o.destinos.map((d) => d.local).join(" → ")}</h4>
+                  <p className="mt-1 flex items-start gap-1.5 text-sm text-slate-600">
+                    <MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />
+                    <span>{o.destinos.map((d) => d.municipio).join(" → ")} · {o.objetivo}</span>
                   </p>
-                  <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">{full ? "Lotado" : "vagas"}</p>
+                  <p className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                    <Clock className="size-4 text-slate-400" />
+                    <b className="text-slate-900">{o.hora_saida}</b> saída <ArrowRight className="size-3.5 text-slate-400" /> <b className="text-slate-900">{o.hora_retorno}</b> retorno
+                  </p>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                    <span className={`flex items-center gap-2 ${full ? "text-slate-500" : "text-green-700"}`}>
+                      <Users className="size-5" />
+                      <span className="font-heading text-2xl font-semibold leading-none" data-testid={`ride-card-vagas-${o.protocolo}`}>{o.vagas_disponiveis}</span>
+                      <span className="text-xs leading-tight text-slate-600">{full ? "lotado" : <>vagas<br />disponíveis</>}</span>
+                    </span>
+                    <span className="text-xs text-slate-500" data-testid={`ride-card-ocupadas-${o.protocolo}`}>{o.vagas_ocupadas}/{o.vagas_totais} ocupadas</span>
+                  </div>
                 </div>
               </div>
-              <ul className="mt-3 space-y-1 text-sm text-slate-600">
-                {o.destinos.map((d, i) => (
-                  <li key={i} className="truncate">• {d.local} — {d.endereco}</li>
-                ))}
-              </ul>
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-700">
-                <span className="flex items-center gap-1.5"><Clock className="size-4 text-slate-400" />{fmtDate(o.data_saida)} · {o.hora_saida}–{o.hora_retorno}</span>
-                <span className="flex items-center gap-1.5"><Car className="size-4 text-slate-400" />{o.veiculo}</span>
-                <span className="flex items-center gap-1.5"><Users className="size-4 text-slate-400" />{o.roteiro}</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 px-5 py-3 text-xs text-slate-600">
+                <span className="flex items-center gap-1.5"><UserRound className="size-4 text-slate-400" />Solicitante: {o.solicitante_nome}</span>
+                <span className="flex items-center gap-1.5"><Route className="size-4 text-slate-400" />{o.roteiro}</span>
+                <span className="flex items-center gap-1.5 text-green-700"><span className="size-1.5 rounded-full bg-green-500" /><Car className="size-4" />{o.veiculo}</span>
+                <span className="text-slate-400">{fmtDate(o.data_saida)}</span>
               </div>
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                <SeatMeter left={o.vagas_disponiveis} total={o.vagas_totais} />
-                <Button size="sm" disabled={full} onClick={() => setTarget(o)} data-testid={`ride-request-btn-${o.protocolo}`}>
-                  Solicitar carona <ArrowRight className="size-4" />
+              <div className="px-5 pb-5">
+                <Button className="w-full" variant="secondary" disabled={full} onClick={() => setTarget(o)} data-testid={`ride-request-btn-${o.protocolo}`}>
+                  {full ? "Sem vagas" : "Pedir carona"} {!full && <ArrowRight className="size-4" />}
                 </Button>
               </div>
             </article>

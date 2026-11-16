@@ -62,6 +62,9 @@ export interface RideOffer {
   veiculo: string;
   vagas_totais: number;
   vagas_disponiveis: number;
+  vagas_ocupadas: number;
+  objetivo: string;
+  solicitante_nome: string;
 }
 
 export interface CaronaIn { trip_id: string; nome: string; email: string; diretoria: string; motivo: string }

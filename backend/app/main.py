@@ -148,6 +148,7 @@ def ride_offers():
                 "data_saida": r["data_saida"], "hora_saida": r["hora_saida"], "hora_retorno": r["hora_retorno"],
                 "roteiro": r["roteiro"], "destinos": db.loads(r["destinos"]),
                 "veiculo": f"{v['modelo']} — {v['placa']}", "vagas_totais": sv[0], "vagas_disponiveis": sv[1],
+                "vagas_ocupadas": sv[0] - sv[1], "objetivo": r["objetivo"], "solicitante_nome": r["solicitante_nome"],
             })
         return out
 

@@ -19,3 +19,13 @@ export function errMsg(e: unknown, fallback = "Não foi possível concluir a ope
   }
   return fallback;
 }
+
+const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const SEMANA = ["Domingo", "Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado"];
+
+/** Partes de uma data ISO (AAAA-MM-DD) para o bloco de data dos cartões: dia, mês abreviado e dia da semana. */
+export function dateParts(iso: string): { day: string; month: string; weekday: string } {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return { day: "—", month: "", weekday: "" };
+  return { day: String(d).padStart(2, "0"), month: MESES[m - 1], weekday: SEMANA[new Date(y, m - 1, d).getDay()] };
+}

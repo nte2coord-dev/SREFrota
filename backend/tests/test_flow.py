@@ -60,6 +60,7 @@ def test_full_flow(client):
 
     offers = client.get("/api/caronas/disponiveis").json()
     assert offers[0]["vagas_totais"] == 4 and offers[0]["vagas_disponiveis"] == 2
+    assert offers[0]["vagas_ocupadas"] == 2 and offers[0]["objetivo"] == "Reunião" and offers[0]["solicitante_nome"] == "Maria"
 
     body = {"trip_id": t["id"], "nome": "Ana", "email": "ana@x.com", "diretoria": "Gabinete", "motivo": ""}
     c1 = client.post("/api/caronas", json=body).json()
